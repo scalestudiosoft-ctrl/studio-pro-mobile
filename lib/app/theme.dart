@@ -21,13 +21,15 @@ ThemeData buildStudioTheme() {
         fontWeight: FontWeight.w800,
       ),
     ),
-    cardTheme: const CardThemeData(
-      color: Colors.white,
-      elevation: 0,
-      shadowColor: const Color(0x0D000000),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-      margin: EdgeInsets.zero,
-    ),
+   cardTheme: const CardThemeData(
+  color: Colors.white,
+  elevation: 0,
+  shadowColor: Color(0x0D000000),
+  shape: RoundedRectangleBorder(
+    borderRadius: BorderRadius.all(Radius.circular(28)),
+  ),
+  margin: EdgeInsets.zero,
+),
     chipTheme: ChipThemeData(
       backgroundColor: const Color(0xFFF4E6EE),
       labelStyle: const TextStyle(fontWeight: FontWeight.w700),
