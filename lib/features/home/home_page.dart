@@ -7,8 +7,7 @@ import '../../core/services/closing_export_service.dart';
 import '../../core/services/daily_operation_validator.dart';
 import '../../core/utils/formatters.dart';
 import '../../shared/widgets/app_shell.dart';
-import '../../shared/widgets/business_logo_avatar.dart';
-import '../../shared/widgets/module_tile.dart';
+import '../../shared/widgets/info_card.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -20,11 +19,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final ClosingExportService _closingExportService = const ClosingExportService();
   final DailyOperationValidator _validator = const DailyOperationValidator();
-
-  String _businessName = 'Studio Pro';
-  String _businessType = 'barbershop';
-  String _city = '';
-  String _logoPath = '';
+  String _businessName = 'Mi Negocio';
   bool _cashOpen = false;
   double _salesTotal = 0;
   int _servicesCount = 0;
@@ -61,10 +56,7 @@ class _HomePageState extends State<HomePage> {
     final validation = await _validator.validateForDate(DateTime.now());
     if (!mounted) return;
     setState(() {
-      _businessName = '${business?['name'] ?? 'Studio Pro'}';
-      _businessType = '${business?['business_type'] ?? 'barbershop'}';
-      _city = '${business?['city'] ?? ''}';
-      _logoPath = '${business?['logo_path'] ?? ''}';
+      _businessName = '${business?['name'] ?? 'Mi Negocio'}';
       _cashOpen = summary['session'] != null;
       _salesTotal = (summary['salesTotal'] as num).toDouble();
       _servicesCount = (summary['servicesCount'] as num).toInt();
@@ -74,382 +66,107 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  String get _segmentLabel {
-    switch (_businessType) {
-      case 'beauty_salon':
-        return 'Salón de belleza';
-      case 'nails_studio':
-        return 'Nails studio';
-      case 'spa':
-        return 'Spa';
-      default:
-        return 'Barbería';
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final warnings = <String>[...?_validation?.blockingIssues, ...?_validation?.warnings];
-    final moduleTiles = <Widget>[
-      ModuleTile(
-        title: 'Caja',
-        subtitle: _cashOpen ? 'Registrar ventas y movimientos' : 'Abrir caja y empezar el día',
-        icon: Icons.point_of_sale_rounded,
-        tint: const Color(0xFF1AA06D),
-        onTap: () => context.go('/cash'),
-      ),
-      ModuleTile(
-        title: 'Agenda',
-        subtitle: 'Citas del día y programación',
-        icon: Icons.event_note_rounded,
-        tint: const Color(0xFF3C82F6),
-        onTap: () => context.go('/agenda'),
-      ),
-      ModuleTile(
-        title: 'Servicios',
-        subtitle: 'Catálogo con precio y duración',
-        icon: Icons.design_services_rounded,
-        tint: const Color(0xFF8B5CF6),
-        onTap: () => context.go('/catalog'),
-      ),
-      ModuleTile(
-        title: 'Clientes',
-        subtitle: 'Base de clientes y seguimiento',
-        icon: Icons.people_alt_rounded,
-        tint: const Color(0xFFF97316),
-        onTap: () => context.push('/clients'),
-      ),
-      ModuleTile(
-        title: 'Profesionales',
-        subtitle: 'Equipo, comisiones y control',
-        icon: Icons.badge_rounded,
-        tint: const Color(0xFF6366F1),
-        onTap: () => context.push('/workers'),
-      ),
-      ModuleTile(
-        title: 'Cierre',
-        subtitle: 'Revisión diaria y exportación',
-        icon: Icons.task_alt_rounded,
-        tint: const Color(0xFFEF4444),
-        onTap: () => context.go('/closing'),
-      ),
-      ModuleTile(
-        title: 'Exportar',
-        subtitle: 'Historial y envío al escritorio',
-        icon: Icons.ios_share_rounded,
-        tint: const Color(0xFF06B6D4),
-        onTap: () => context.push('/exports'),
-      ),
-      ModuleTile(
-        title: 'Configurar',
-        subtitle: 'Logo, negocio y dispositivo',
-        icon: Icons.settings_rounded,
-        tint: const Color(0xFF64748B),
-        onTap: () => context.push('/settings'),
-      ),
-    ];
-
     return AppShell(
       title: _businessName,
       body: RefreshIndicator(
         onRefresh: _load,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          padding: const EdgeInsets.all(16),
           children: <Widget>[
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(32),
-                gradient: const LinearGradient(
-                  colors: <Color>[Color(0xFFD98FB3), Color(0xFFB14E8A)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                boxShadow: const <BoxShadow>[
-                  BoxShadow(
-                    color: Color(0x261B1026),
-                    blurRadius: 30,
-                    offset: Offset(0, 18),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      BusinessLogoAvatar(
-                        logoPath: _logoPath,
-                        radius: 32,
-                        iconSize: 28,
-                        backgroundColor: Colors.white.withOpacity(0.88),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: <Widget>[
-                            Text(
-                              _businessName,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              '$_segmentLabel${_city.trim().isEmpty ? '' : ' • $_city'}',
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: Colors.white.withOpacity(0.92),
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      FilledButton.tonalIcon(
-                        onPressed: () => context.push('/settings'),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: Colors.white.withOpacity(0.18),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                        ),
-                        icon: const Icon(Icons.tune_rounded, size: 18),
-                        label: const Text('Editar'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: <Widget>[
-                      _HeroMetricChip(
-                        icon: _cashOpen ? Icons.lock_open_rounded : Icons.lock_outline_rounded,
-                        label: _cashOpen ? 'Caja abierta' : 'Caja cerrada',
-                      ),
-                      _HeroMetricChip(icon: Icons.today_rounded, label: formatShortDate(DateTime.now())),
-                      _HeroMetricChip(icon: Icons.sell_rounded, label: '${_servicesCount} servicios'),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 18),
-            Text(
-              'Módulos principales',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Todo lo importante del negocio a uno o dos toques.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: const Color(0xFF6D6677)),
-            ),
-            const SizedBox(height: 14),
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: moduleTiles.length,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: 0.98,
-              ),
-              itemBuilder: (context, index) => moduleTiles[index],
-            ),
-            const SizedBox(height: 18),
-            Row(
-              children: <Widget>[
-                Expanded(
-                  child: _QuickStatCard(
-                    title: 'Ventas hoy',
-                    value: copCurrency.format(_salesTotal),
-                    icon: Icons.payments_rounded,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _QuickStatCard(
-                    title: 'Citas',
-                    value: '$_appointmentsCount',
-                    icon: Icons.schedule_rounded,
-                  ),
-                ),
-              ],
-            ),
+            Text('Operación de hoy', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 12),
-            Row(
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
               children: <Widget>[
-                Expanded(
-                  child: _QuickStatCard(
-                    title: 'Clientes',
-                    value: '$_clientsCount',
-                    icon: Icons.groups_rounded,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _QuickStatCard(
-                    title: 'Servicios',
-                    value: '$_servicesCount',
-                    icon: Icons.content_cut_rounded,
-                  ),
-                ),
+                SizedBox(width: 220, child: InfoCard(title: 'Caja', value: _cashOpen ? 'Abierta' : 'Cerrada', subtitle: formatShortDate(DateTime.now()))),
+                SizedBox(width: 220, child: InfoCard(title: 'Vendido hoy', value: copCurrency.format(_salesTotal))),
+                SizedBox(width: 220, child: InfoCard(title: 'Servicios', value: '$_servicesCount')),
+                SizedBox(width: 220, child: InfoCard(title: 'Citas del día', value: '$_appointmentsCount', subtitle: 'Clientes registrados: $_clientsCount')),
               ],
             ),
             if (warnings.isNotEmpty) ...<Widget>[
-              const SizedBox(height: 18),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFF5E8),
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: const Color(0xFFF2D4A6)),
+              const SizedBox(height: 16),
+              Card(
+                color: Theme.of(context).colorScheme.tertiaryContainer,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text('Pendientes para operar mejor', style: Theme.of(context).textTheme.titleMedium),
+                      const SizedBox(height: 8),
+                      ...warnings.take(3).map((warning) => Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: Text('• $warning'),
+                          )),
+                    ],
+                  ),
                 ),
+              ),
+            ],
+            const SizedBox(height: 20),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Row(
+                    Text('Accesos rápidos', style: Theme.of(context).textTheme.titleMedium),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
                       children: <Widget>[
-                        const Icon(Icons.info_outline_rounded, color: Color(0xFF9A5D00)),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Pendientes por revisar',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-                        ),
+                        FilledButton.icon(onPressed: () => context.go('/catalog'), icon: const Icon(Icons.add), label: const Text('Servicios')),
+                        OutlinedButton.icon(onPressed: () => context.go('/agenda'), icon: const Icon(Icons.event_note), label: const Text('Agenda')),
+                        OutlinedButton.icon(onPressed: () => context.go('/cash'), icon: const Icon(Icons.payments), label: const Text('Caja')),
+                        OutlinedButton.icon(onPressed: () => context.go('/closing'), icon: const Icon(Icons.task_alt), label: const Text('Cerrar día')),
+                        OutlinedButton.icon(onPressed: () => context.push('/workers'), icon: const Icon(Icons.badge_outlined), label: const Text('Profesionales')),
+                        OutlinedButton.icon(onPressed: () => context.push('/clients'), icon: const Icon(Icons.people_outline), label: const Text('Clientes')),
+                        OutlinedButton.icon(onPressed: () => context.push('/catalog'), icon: const Icon(Icons.content_cut_outlined), label: const Text('Servicios')),
                       ],
-                    ),
-                    const SizedBox(height: 10),
-                    ...warnings.take(4).map(
-                      (issue) => Padding(
-                        padding: const EdgeInsets.only(bottom: 7),
-                        child: Text('• $issue'),
-                      ),
                     ),
                   ],
                 ),
               ),
-            ],
-            const SizedBox(height: 18),
-            Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(28),
-                boxShadow: const <BoxShadow>[
-                  BoxShadow(
-                    color: Color(0x10140A2B),
-                    blurRadius: 20,
-                    offset: Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    'Flujo recomendado',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-                  ),
-                  const SizedBox(height: 10),
-                  const Text('1. Configura negocio y logo.\n2. Abre caja.\n3. Agenda o factura.\n4. Revisa cierre.\n5. Exporta JSON por WhatsApp.'),
-                  const SizedBox(height: 14),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: <Widget>[
-                      ActionChip(label: const Text('Abrir caja'), onPressed: () => context.go('/cash')),
-                      ActionChip(label: const Text('Nueva cita'), onPressed: () => context.go('/agenda')),
-                      ActionChip(label: const Text('Exportar cierre'), onPressed: () => context.go('/closing')),
-                    ],
-                  ),
-                ],
+            ),
+            const SizedBox(height: 16),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    const Text('Flujo correcto del día', style: TextStyle(fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 8),
+                    const Text(
+                      '1. Configura negocio, profesionales, clientes y catálogo.\n'
+                      '2. Abre caja.\n'
+                      '3. Registra citas o servicios.\n'
+                      '4. Cada servicio debe facturar a un cliente, quedar ligado a un profesional y afectar ventas/caja.\n'
+                      '5. Revisa el cierre y exporta el JSON por WhatsApp.',
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: <Widget>[
+                        ActionChip(label: const Text('Configurar negocio'), onPressed: () => context.push('/settings')),
+                        ActionChip(label: const Text('Crear profesional'), onPressed: () => context.push('/workers')),
+                        ActionChip(label: const Text('Crear cliente'), onPressed: () => context.push('/clients')),
+                        ActionChip(label: const Text('Abrir caja'), onPressed: () => context.go('/cash')),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _HeroMetricChip extends StatelessWidget {
-  const _HeroMetricChip({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.16),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.white.withOpacity(0.08)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Icon(icon, size: 16, color: Colors.white),
-          const SizedBox(width: 8),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _QuickStatCard extends StatelessWidget {
-  const _QuickStatCard({
-    required this.title,
-    required this.value,
-    required this.icon,
-  });
-
-  final String title;
-  final String value;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: const <BoxShadow>[
-          BoxShadow(
-            color: Color(0x10140A2B),
-            blurRadius: 18,
-            offset: Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Icon(icon, color: const Color(0xFFB14E8A)),
-          const SizedBox(height: 12),
-          Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 4),
-          Text(title, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: const Color(0xFF6E6A7C))),
-        ],
       ),
     );
   }

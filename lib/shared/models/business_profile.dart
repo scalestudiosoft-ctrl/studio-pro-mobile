@@ -7,7 +7,8 @@ class BusinessProfile {
     this.ownerName = '',
     this.deviceName = 'Android',
     this.defaultOpeningCash = 0,
-    this.logoPath = '',
+    this.primaryButtonColor = '#B14E8A',
+    this.secondaryButtonColor = '#6B6475',
   });
 
   final String businessId;
@@ -17,7 +18,8 @@ class BusinessProfile {
   final String ownerName;
   final String deviceName;
   final double defaultOpeningCash;
-  final String logoPath;
+  final String primaryButtonColor;
+  final String secondaryButtonColor;
 
   Map<String, Object?> toMap() => {
         'business_id': businessId,
@@ -27,6 +29,7 @@ class BusinessProfile {
         'owner_name': ownerName,
         'device_name': deviceName,
         'default_opening_cash': defaultOpeningCash,
-        'logo_path': logoPath,
+        'primary_button_color': primaryButtonColor,
+        'secondary_button_color': secondaryButtonColor,
       };
 }

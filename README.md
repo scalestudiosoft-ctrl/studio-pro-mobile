@@ -1,4 +1,4 @@
-# Studio Pro 2.1.0
+# Studio Pro 2.0.0
 
 Versión candidata estable de la app móvil offline de Studio Pro.
 
