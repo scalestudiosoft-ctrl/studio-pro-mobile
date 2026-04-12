@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -23,6 +25,7 @@ class _HomePageState extends State<HomePage> {
   String _businessName = 'Studio Pro';
   String _businessType = 'barbershop';
   String _city = '';
+  String? _logoPath;
   bool _cashOpen = false;
   double _salesTotal = 0;
   int _servicesCount = 0;
@@ -62,6 +65,7 @@ class _HomePageState extends State<HomePage> {
       _businessName = '${business?['name'] ?? 'Studio Pro'}';
       _businessType = '${business?['business_type'] ?? 'barbershop'}';
       _city = '${business?['city'] ?? ''}';
+      _logoPath = '${business?['logo_path'] ?? ''}'.trim().isEmpty ? null : '${business?['logo_path']}';
       _cashOpen = summary['session'] != null;
       _salesTotal = (summary['salesTotal'] as num).toDouble();
       _servicesCount = (summary['servicesCount'] as num).toInt();
@@ -173,22 +177,36 @@ class _HomePageState extends State<HomePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Text(
-                    _businessName,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w900,
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      _BusinessLogoPreview(path: _logoPath),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Text(
+                              _businessName,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              '$_segmentLabel${_city.trim().isEmpty ? '' : ' • $_city'}',
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: Colors.white.withOpacity(0.88),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                            ),
+                          ],
                         ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    '$_segmentLabel${_city.trim().isEmpty ? '' : ' • $_city'}',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.white.withOpacity(0.88),
-                          fontWeight: FontWeight.w600,
-                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 18),
                   Wrap(
@@ -305,6 +323,45 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
+    );
+  }
+}
+
+
+class _BusinessLogoPreview extends StatelessWidget {
+  const _BusinessLogoPreview({required this.path});
+
+  final String? path;
+
+  @override
+  Widget build(BuildContext context) {
+    final logoPath = path;
+    if (logoPath == null || logoPath.isEmpty) {
+      return Container(
+        width: 64,
+        height: 64,
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.16),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: const Icon(Icons.storefront_rounded, color: Colors.white, size: 34),
+      );
+    }
+    final file = File(logoPath);
+    if (!file.existsSync()) {
+      return Container(
+        width: 64,
+        height: 64,
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.16),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: const Icon(Icons.broken_image_rounded, color: Colors.white, size: 34),
+      );
+    }
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: Image.file(file, width: 64, height: 64, fit: BoxFit.cover),
     );
   }
 }

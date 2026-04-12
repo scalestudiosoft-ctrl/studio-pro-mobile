@@ -135,6 +135,9 @@ class ClosingExportService {
     final clients = await db.queryAll('clients');
     final workers = await db.queryAll('workers');
     final catalog = await db.queryAll('service_catalog', orderBy: 'name ASC');
+    final pendingAppointments = await db.queryRaw(
+      "SELECT * FROM appointments WHERE status NOT IN ('finalizado', 'cancelado') ORDER BY scheduled_at ASC",
+    );
     final businessRows = await db.queryAll('business_profile');
     if (businessRows.isEmpty) {
       throw StateError('No existe perfil del negocio configurado.');
@@ -201,6 +204,19 @@ class ClosingExportService {
             'duration_minutes': e['duration_minutes'] ?? 45,
             'commission_percent': e['commission_percent'] ?? 0,
             'description': e['description'] ?? '',
+          }).toList(),
+      'appointments_pending': pendingAppointments.map((e) => <String, Object?>{
+            'appointment_id': e['id'],
+            'scheduled_at': e['scheduled_at'],
+            'status': e['status'],
+            'client_id': e['client_id'],
+            'client_name': e['client_name'],
+            'worker_id': e['worker_id'],
+            'worker_name': e['worker_name'],
+            'service_code': e['service_code'],
+            'service_name': e['service_name'],
+            'notes': e['notes'],
+            'source': 'mobile',
           }).toList(),
       'services_performed': services.map((e) => <String, Object?>{
             'performed_id': e['id'],

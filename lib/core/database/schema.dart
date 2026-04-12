@@ -15,7 +15,8 @@ const List<String> appSchema = <String>[
     device_name TEXT NOT NULL DEFAULT 'Android',
     default_opening_cash REAL NOT NULL DEFAULT 0,
     primary_button_color TEXT NOT NULL DEFAULT '#B14E8A',
-    secondary_button_color TEXT NOT NULL DEFAULT '#6B6475'
+    secondary_button_color TEXT NOT NULL DEFAULT '#6B6475',
+    logo_path TEXT
   )
   ''',
   '''
@@ -163,6 +164,7 @@ const List<String> appSchema = <String>[
   "ALTER TABLE business_profile ADD COLUMN default_opening_cash REAL NOT NULL DEFAULT 0",
   "ALTER TABLE business_profile ADD COLUMN primary_button_color TEXT NOT NULL DEFAULT '#B14E8A'",
   "ALTER TABLE business_profile ADD COLUMN secondary_button_color TEXT NOT NULL DEFAULT '#6B6475'",
+  "ALTER TABLE business_profile ADD COLUMN logo_path TEXT",
   "ALTER TABLE appointments ADD COLUMN client_name TEXT NOT NULL DEFAULT ''",
   "ALTER TABLE appointments ADD COLUMN worker_name TEXT",
   "ALTER TABLE appointments ADD COLUMN service_code TEXT",

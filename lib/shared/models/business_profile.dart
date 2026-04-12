@@ -9,6 +9,7 @@ class BusinessProfile {
     this.defaultOpeningCash = 0,
     this.primaryButtonColor = '#B14E8A',
     this.secondaryButtonColor = '#6B6475',
+    this.logoPath,
   });
 
   final String businessId;
@@ -20,6 +21,7 @@ class BusinessProfile {
   final double defaultOpeningCash;
   final String primaryButtonColor;
   final String secondaryButtonColor;
+  final String? logoPath;
 
   Map<String, Object?> toMap() => {
         'business_id': businessId,
@@ -31,5 +33,6 @@ class BusinessProfile {
         'default_opening_cash': defaultOpeningCash,
         'primary_button_color': primaryButtonColor,
         'secondary_button_color': secondaryButtonColor,
+        'logo_path': logoPath,
       };
 }
