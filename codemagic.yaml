@@ -1,0 +1,37 @@
+workflows:
+  android-apk:
+    name: Studio Pro Android 2.1.1
+    environment:
+      flutter: stable
+    scripts:
+      - name: Get packages
+        script: |
+          flutter pub get
+      - name: Generate Android platform if missing
+        script: |
+          if [ ! -f android/app/build.gradle ] && [ ! -f android/app/build.gradle.kts ]; then
+            flutter create . --platforms=android
+          fi
+      - name: Force Android app label
+        script: |
+          if [ -f android/app/src/main/AndroidManifest.xml ]; then
+            python3 - <<'PY'
+from pathlib import Path
+manifest = Path('android/app/src/main/AndroidManifest.xml')
+text = manifest.read_text()
+for old in ['android:label="studio_pro"', 'android:label="studio_pro_mobile_lite"', 'android:label="StudioPro"']:
+    text = text.replace(old, 'android:label="Studio Pro"')
+manifest.write_text(text)
+PY
+          fi
+      - name: Generate launcher icon
+        script: |
+          dart run flutter_launcher_icons
+      - name: Build debug APK
+        script: |
+          flutter build apk --debug
+          if [ -f build/app/outputs/flutter-apk/app-debug.apk ]; then
+            mv build/app/outputs/flutter-apk/app-debug.apk "build/app/outputs/flutter-apk/Studio Pro 2.1.1.apk"
+          fi
+    artifacts:
+      - build/app/outputs/flutter-apk/*.apk
