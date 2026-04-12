@@ -7,7 +7,7 @@ import '../../core/services/closing_export_service.dart';
 import '../../core/services/daily_operation_validator.dart';
 import '../../core/utils/formatters.dart';
 import '../../shared/widgets/app_shell.dart';
-import '../../shared/widgets/info_card.dart';
+import '../../shared/widgets/module_tile.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -19,7 +19,10 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final ClosingExportService _closingExportService = const ClosingExportService();
   final DailyOperationValidator _validator = const DailyOperationValidator();
-  String _businessName = 'Mi Negocio';
+
+  String _businessName = 'Studio Pro';
+  String _businessType = 'barbershop';
+  String _city = '';
   bool _cashOpen = false;
   double _salesTotal = 0;
   int _servicesCount = 0;
@@ -56,7 +59,9 @@ class _HomePageState extends State<HomePage> {
     final validation = await _validator.validateForDate(DateTime.now());
     if (!mounted) return;
     setState(() {
-      _businessName = '${business?['name'] ?? 'Mi Negocio'}';
+      _businessName = '${business?['name'] ?? 'Studio Pro'}';
+      _businessType = '${business?['business_type'] ?? 'barbershop'}';
+      _city = '${business?['city'] ?? ''}';
       _cashOpen = summary['session'] != null;
       _salesTotal = (summary['salesTotal'] as num).toDouble();
       _servicesCount = (summary['servicesCount'] as num).toInt();
@@ -66,107 +71,298 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  String get _segmentLabel {
+    switch (_businessType) {
+      case 'beauty_salon':
+        return 'Salón de belleza';
+      case 'nails_studio':
+        return 'Nails studio';
+      case 'spa':
+        return 'Spa';
+      default:
+        return 'Barbería';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final warnings = <String>[...?_validation?.blockingIssues, ...?_validation?.warnings];
+    final moduleTiles = <Widget>[
+      ModuleTile(
+        title: 'Caja',
+        subtitle: _cashOpen ? 'Registrar ventas y movimientos' : 'Abrir caja y empezar el día',
+        icon: Icons.point_of_sale_rounded,
+        tint: const Color(0xFF0F766E),
+        onTap: () => context.go('/cash'),
+      ),
+      ModuleTile(
+        title: 'Agenda',
+        subtitle: 'Citas del día y programación',
+        icon: Icons.event_note_rounded,
+        tint: const Color(0xFF2563EB),
+        onTap: () => context.go('/agenda'),
+      ),
+      ModuleTile(
+        title: 'Servicios',
+        subtitle: 'Catálogo con precio y duración',
+        icon: Icons.design_services_rounded,
+        tint: const Color(0xFF7C3AED),
+        onTap: () => context.go('/catalog'),
+      ),
+      ModuleTile(
+        title: 'Clientes',
+        subtitle: 'Base de clientes y seguimiento',
+        icon: Icons.people_alt_rounded,
+        tint: const Color(0xFFEA580C),
+        onTap: () => context.push('/clients'),
+      ),
+      ModuleTile(
+        title: 'Profesionales',
+        subtitle: 'Equipo, comisiones y control',
+        icon: Icons.badge_rounded,
+        tint: const Color(0xFF4F46E5),
+        onTap: () => context.push('/workers'),
+      ),
+      ModuleTile(
+        title: 'Cierre',
+        subtitle: 'Revisión diaria y exportación',
+        icon: Icons.task_alt_rounded,
+        tint: const Color(0xFFDC2626),
+        onTap: () => context.go('/closing'),
+      ),
+      ModuleTile(
+        title: 'Exportar',
+        subtitle: 'Historial y envío al escritorio',
+        icon: Icons.ios_share_rounded,
+        tint: const Color(0xFF0891B2),
+        onTap: () => context.push('/exports'),
+      ),
+      ModuleTile(
+        title: 'Configurar',
+        subtitle: 'Negocio y dispositivo',
+        icon: Icons.settings_rounded,
+        tint: const Color(0xFF64748B),
+        onTap: () => context.push('/settings'),
+      ),
+    ];
+
     return AppShell(
       title: _businessName,
       body: RefreshIndicator(
         onRefresh: _load,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
           children: <Widget>[
-            Text('Operación de hoy', style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(32),
+                gradient: const LinearGradient(
+                  colors: <Color>[Color(0xFF4B5563), Color(0xFF111827)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                boxShadow: const <BoxShadow>[
+                  BoxShadow(
+                    color: Color(0x1A111827),
+                    blurRadius: 24,
+                    offset: Offset(0, 14),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    _businessName,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                        ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '$_segmentLabel${_city.trim().isEmpty ? '' : ' • $_city'}',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.white.withOpacity(0.88),
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                  const SizedBox(height: 18),
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: <Widget>[
+                      _HeroMetricChip(
+                        icon: _cashOpen ? Icons.lock_open_rounded : Icons.lock_outline_rounded,
+                        label: _cashOpen ? 'Caja abierta' : 'Caja cerrada',
+                      ),
+                      _HeroMetricChip(icon: Icons.today_rounded, label: formatShortDate(DateTime.now())),
+                      _HeroMetricChip(icon: Icons.sell_rounded, label: '${_servicesCount} servicios'),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 18),
+            Text(
+              'Módulos principales',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Todo lo importante del negocio a uno o dos toques.',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: const Color(0xFF6B7280)),
+            ),
+            const SizedBox(height: 14),
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: moduleTiles.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: 0.98,
+              ),
+              itemBuilder: (context, index) => moduleTiles[index],
+            ),
+            const SizedBox(height: 18),
+            Row(
               children: <Widget>[
-                SizedBox(width: 220, child: InfoCard(title: 'Caja', value: _cashOpen ? 'Abierta' : 'Cerrada', subtitle: formatShortDate(DateTime.now()))),
-                SizedBox(width: 220, child: InfoCard(title: 'Vendido hoy', value: copCurrency.format(_salesTotal))),
-                SizedBox(width: 220, child: InfoCard(title: 'Servicios', value: '$_servicesCount')),
-                SizedBox(width: 220, child: InfoCard(title: 'Citas del día', value: '$_appointmentsCount', subtitle: 'Clientes registrados: $_clientsCount')),
+                Expanded(
+                  child: _QuickStatCard(
+                    title: 'Ventas hoy',
+                    value: copCurrency.format(_salesTotal),
+                    icon: Icons.payments_rounded,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _QuickStatCard(
+                    title: 'Citas',
+                    value: '$_appointmentsCount',
+                    icon: Icons.schedule_rounded,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: <Widget>[
+                Expanded(
+                  child: _QuickStatCard(
+                    title: 'Clientes',
+                    value: '$_clientsCount',
+                    icon: Icons.groups_rounded,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _QuickStatCard(
+                    title: 'Servicios',
+                    value: '$_servicesCount',
+                    icon: Icons.content_cut_rounded,
+                  ),
+                ),
               ],
             ),
             if (warnings.isNotEmpty) ...<Widget>[
-              const SizedBox(height: 16),
-              Card(
-                color: Theme.of(context).colorScheme.tertiaryContainer,
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text('Pendientes para operar mejor', style: Theme.of(context).textTheme.titleMedium),
-                      const SizedBox(height: 8),
-                      ...warnings.take(3).map((warning) => Padding(
+              const SizedBox(height: 18),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF7ED),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: const Color(0xFFFED7AA)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Row(
+                      children: <Widget>[
+                        const Icon(Icons.info_outline_rounded, color: Color(0xFF9A3412)),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Pendientes para operar mejor',
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    ...warnings.take(4).map(
+                          (warning) => Padding(
                             padding: const EdgeInsets.only(bottom: 6),
                             child: Text('• $warning'),
-                          )),
-                    ],
-                  ),
+                          ),
+                        ),
+                  ],
                 ),
               ),
             ],
-            const SizedBox(height: 20),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text('Accesos rápidos', style: Theme.of(context).textTheme.titleMedium),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      children: <Widget>[
-                        FilledButton.icon(onPressed: () => context.go('/catalog'), icon: const Icon(Icons.add), label: const Text('Servicios')),
-                        OutlinedButton.icon(onPressed: () => context.go('/agenda'), icon: const Icon(Icons.event_note), label: const Text('Agenda')),
-                        OutlinedButton.icon(onPressed: () => context.go('/cash'), icon: const Icon(Icons.payments), label: const Text('Caja')),
-                        OutlinedButton.icon(onPressed: () => context.go('/closing'), icon: const Icon(Icons.task_alt), label: const Text('Cerrar día')),
-                        OutlinedButton.icon(onPressed: () => context.push('/workers'), icon: const Icon(Icons.badge_outlined), label: const Text('Profesionales')),
-                        OutlinedButton.icon(onPressed: () => context.push('/clients'), icon: const Icon(Icons.people_outline), label: const Text('Clientes')),
-                        OutlinedButton.icon(onPressed: () => context.push('/catalog'), icon: const Icon(Icons.content_cut_outlined), label: const Text('Servicios')),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    const Text('Flujo correcto del día', style: TextStyle(fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 8),
-                    const Text(
-                      '1. Configura negocio, profesionales, clientes y catálogo.\n'
-                      '2. Abre caja.\n'
-                      '3. Registra citas o servicios.\n'
-                      '4. Cada servicio debe facturar a un cliente, quedar ligado a un profesional y afectar ventas/caja.\n'
-                      '5. Revisa el cierre y exporta el JSON por WhatsApp.',
-                    ),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: <Widget>[
-                        ActionChip(label: const Text('Configurar negocio'), onPressed: () => context.push('/settings')),
-                        ActionChip(label: const Text('Crear profesional'), onPressed: () => context.push('/workers')),
-                        ActionChip(label: const Text('Crear cliente'), onPressed: () => context.push('/clients')),
-                        ActionChip(label: const Text('Abrir caja'), onPressed: () => context.go('/cash')),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _HeroMetricChip extends StatelessWidget {
+  const _HeroMetricChip({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white.withOpacity(0.14)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(icon, size: 16, color: Colors.white),
+          const SizedBox(width: 8),
+          Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+        ],
+      ),
+    );
+  }
+}
+
+class _QuickStatCard extends StatelessWidget {
+  const _QuickStatCard({required this.title, required this.value, required this.icon});
+
+  final String title;
+  final String value;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: const <BoxShadow>[
+          BoxShadow(color: Color(0x08000000), blurRadius: 16, offset: Offset(0, 8)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Icon(icon, color: const Color(0xFF374151)),
+          const SizedBox(height: 12),
+          Text(title, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: const Color(0xFF6B7280))),
+          const SizedBox(height: 6),
+          Text(value, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
+        ],
       ),
     );
   }

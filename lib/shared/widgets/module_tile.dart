@@ -29,12 +29,12 @@ class ModuleTile extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: tint.withOpacity(0.18)),
+            border: Border.all(color: tint.withOpacity(0.16)),
             boxShadow: const <BoxShadow>[
               BoxShadow(
-                color: Color(0x0F140A2B),
-                blurRadius: 24,
-                offset: Offset(0, 10),
+                color: Color(0x0A000000),
+                blurRadius: 18,
+                offset: Offset(0, 8),
               ),
             ],
           ),
@@ -62,7 +62,7 @@ class ModuleTile extends StatelessWidget {
                 subtitle,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodySmall?.copyWith(color: const Color(0xFF6E6A7C), height: 1.25),
+                style: theme.textTheme.bodySmall?.copyWith(color: const Color(0xFF6B7280), height: 1.25),
               ),
             ],
           ),

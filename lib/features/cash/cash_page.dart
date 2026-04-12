@@ -423,7 +423,7 @@ class _CashPageState extends State<CashPage> {
                     if (_session == null) ...<Widget>[
                       TextField(
                         controller: _openingController,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        keyboardType: TextInputType.number,
                         decoration: const InputDecoration(labelText: 'Monto inicial en efectivo'),
                       ),
                       const SizedBox(height: 12),
@@ -475,7 +475,7 @@ class _CashPageState extends State<CashPage> {
                       const SizedBox(height: 12),
                       TextField(
                         controller: _salePriceController,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        keyboardType: TextInputType.number,
                         decoration: const InputDecoration(labelText: 'Valor final cobrado'),
                       ),
                       const SizedBox(height: 12),
@@ -522,7 +522,7 @@ class _CashPageState extends State<CashPage> {
                       const SizedBox(height: 12),
                       TextField(controller: _movementConceptController, decoration: const InputDecoration(labelText: 'Concepto')),
                       const SizedBox(height: 12),
-                      TextField(controller: _movementAmountController, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Valor')),
+                      TextField(controller: _movementAmountController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Valor')),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
                         value: _movementPaymentMethod,
