@@ -21,10 +21,10 @@ ThemeData buildStudioTheme() {
         fontWeight: FontWeight.w800,
       ),
     ),
-    cardTheme: CardTheme(
+    cardTheme: const CardThemeData(
       color: Colors.white,
       elevation: 0,
-      shadowColor: Colors.black.withOpacity(0.05),
+      shadowColor: const Color(0x0D000000),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
       margin: EdgeInsets.zero,
     ),
