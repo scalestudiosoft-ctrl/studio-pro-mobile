@@ -32,13 +32,13 @@ ThemeData buildStudioTheme() {
         fontWeight: FontWeight.w800,
       ),
     ),
-    cardTheme: CardTheme(
+    cardTheme: const CardThemeData(
       color: Colors.white,
       elevation: 0,
       margin: EdgeInsets.zero,
-      shadowColor: const Color(0x12000000),
+      shadowColor: Color(0x12000000),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.all(Radius.circular(24)),
       ),
     ),
     chipTheme: ChipThemeData(
