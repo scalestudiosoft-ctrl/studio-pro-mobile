@@ -1,10 +1,12 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../core/database/app_database.dart';
 import '../../core/services/app_sync_bus.dart';
+import '../../core/services/close_reopen_service.dart';
 import '../../core/utils/formatters.dart';
 import '../../shared/widgets/app_shell.dart';
 
@@ -16,7 +18,9 @@ class ExportsPage extends StatefulWidget {
 }
 
 class _ExportsPageState extends State<ExportsPage> {
+  final CloseReopenService _reopenService = const CloseReopenService();
   List<Map<String, Object?>> _exports = const <Map<String, Object?>>[];
+  String? _busyId;
 
   @override
   void initState() {
@@ -47,6 +51,40 @@ class _ExportsPageState extends State<ExportsPage> {
     await Share.shareXFiles(<XFile>[XFile(path)], text: 'Cierre Studio Pro');
   }
 
+  Future<void> _reopen(Map<String, Object?> row) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Reabrir cierre'),
+        content: const Text(
+          'Se volverá a abrir la última sesión de caja desde este JSON para que puedas corregir ventas, gastos o citas antes de exportar otra vez.',
+        ),
+        actions: <Widget>[
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Reabrir')),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+
+    final id = '${row['id']}';
+    setState(() => _busyId = id);
+    try {
+      await _reopenService.reopenFromExportFile('${row['file_path']}');
+      if (!mounted) return;
+      AppSyncBus.bump();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Cierre reabierto. Ya puedes corregirlo y volver a exportar.')),
+      );
+      context.go('/cash');
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+    } finally {
+      if (mounted) setState(() => _busyId = null);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return AppShell(
@@ -54,14 +92,44 @@ class _ExportsPageState extends State<ExportsPage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: <Widget>[
-          ..._exports.map((row) => Card(
-                child: ListTile(
-                  title: Text('${row['file_name']}'),
-                  subtitle: Text('${formatShortDateTime(DateTime.parse('${row['created_at']}'))}\n${row['file_path']}'),
-                  isThreeLine: true,
-                  trailing: IconButton(onPressed: () => _share(row), icon: const Icon(Icons.share_outlined)),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const <Widget>[
+                  Text('Último JSON exportado', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                  SizedBox(height: 8),
+                  Text('Puedes reabrir un cierre desde aquí para corregirlo y volver a exportarlo sin abrir y cerrar caja desde cero.'),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          ..._exports.asMap().entries.map((entry) {
+            final index = entry.key;
+            final row = entry.value;
+            final isLatest = index == 0;
+            final busy = _busyId == '${row['id']}';
+            return Card(
+              child: ListTile(
+                title: Text('${row['file_name']}'),
+                subtitle: Text('${formatShortDateTime(DateTime.parse('${row['created_at']}'))}\n${row['file_path']}'),
+                isThreeLine: true,
+                trailing: Wrap(
+                  spacing: 8,
+                  children: <Widget>[
+                    if (isLatest)
+                      OutlinedButton(
+                        onPressed: busy ? null : () => _reopen(row),
+                        child: Text(busy ? 'Abriendo...' : 'Reabrir'),
+                      ),
+                    IconButton(onPressed: () => _share(row), icon: const Icon(Icons.share_outlined)),
+                  ],
                 ),
-              )),
+              ),
+            );
+          }),
           if (_exports.isEmpty)
             const Card(
               child: Padding(

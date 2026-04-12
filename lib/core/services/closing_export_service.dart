@@ -146,6 +146,14 @@ class ClosingExportService {
     final services = summary['services'] as List<Map<String, Object?>>;
     final sales = summary['sales'] as List<Map<String, Object?>>;
     final cashMovements = summary['cashMovements'] as List<Map<String, Object?>>;
+    final exportedCashMovements = cashMovements.where((movement) {
+      final type = '${movement['type'] ?? ''}'.toLowerCase();
+      final saleId = '${movement['sale_id'] ?? ''}'.trim();
+      if (type == 'income' && saleId.isNotEmpty) {
+        return false;
+      }
+      return true;
+    }).toList();
     if (services.isEmpty || sales.isEmpty) {
       throw StateError('No puedes cerrar el día sin servicios y ventas registradas.');
     }
@@ -257,7 +265,7 @@ class ClosingExportService {
             'sale_type': 'service',
             'source': 'mobile',
           }).toList(),
-      'cash_movements': cashMovements.map((e) => <String, Object?>{
+      'cash_movements': exportedCashMovements.map((e) => <String, Object?>{
             'movement_id': e['id'],
             'movement_at': e['movement_at'],
             'type': e['type'],
