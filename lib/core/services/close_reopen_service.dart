@@ -2,17 +2,28 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:uuid/uuid.dart';
 
+import '../constants/app_constants.dart';
 import '../database/app_database.dart';
 
 class CloseReopenService {
   const CloseReopenService();
 
   Future<void> reopenFromExportFile(String path) async {
+    await _restoreFromJson(path, registerInHistory: false);
+  }
+
+  Future<void> importBackupFromExternalFile(String path) async {
+    await _restoreFromJson(path, registerInHistory: true);
+  }
+
+  Future<void> _restoreFromJson(String path, {required bool registerInHistory}) async {
     final file = File(path);
     if (!await file.exists()) {
-      throw StateError('No se encontró el archivo JSON exportado.');
+      throw StateError('No se encontró el archivo JSON seleccionado.');
     }
 
     final raw = await file.readAsString();
@@ -21,13 +32,14 @@ class CloseReopenService {
       throw StateError('El archivo JSON no tiene un formato válido.');
     }
 
-    final schema = '${payload['schema_version'] ?? ''}';
-    if (schema != 'sp_mobile_sync_v1') {
+    final schema = '${payload['schema_version'] ?? ''}'.trim();
+    if (schema != AppConstants.syncSchemaVersion) {
       throw StateError('El JSON no corresponde al esquema esperado de Studio Pro.');
     }
 
     final business = (payload['business'] as Map?)?.cast<String, dynamic>() ?? const <String, dynamic>{};
     final device = (payload['device'] as Map?)?.cast<String, dynamic>() ?? const <String, dynamic>{};
+    final exportMeta = (payload['export_meta'] as Map?)?.cast<String, dynamic>() ?? const <String, dynamic>{};
     final closeBatch = (payload['close_batch'] as Map?)?.cast<String, dynamic>() ?? const <String, dynamic>{};
     final workers = (payload['workers'] as List?)?.cast<Map>() ?? const <Map>[];
     final clients = (payload['clients'] as List?)?.cast<Map>() ?? const <Map>[];
@@ -46,6 +58,10 @@ class CloseReopenService {
 
     final db = AppDatabase.instance;
     final existingBusiness = await db.firstRow('business_profile');
+    final storedPath = registerInHistory ? await _copyIntoManagedExports(file, exportMeta['file_name']) : path;
+    final fileName = p.basename(storedPath);
+    final closeId = '${closeBatch['close_batch_id'] ?? 'REOPEN-$sessionId'}';
+
     await db.executeBatch((batch) async {
       if (existingBusiness != null) {
         batch.update(
@@ -58,7 +74,7 @@ class CloseReopenService {
             'device_name': device['device_name'] ?? existingBusiness['device_name'],
           },
           where: 'business_id = ?',
-          whereArgs: <Object?>[existingBusiness['business_id']]
+          whereArgs: <Object?>[existingBusiness['business_id']],
         );
       }
 
@@ -68,6 +84,12 @@ class CloseReopenService {
         where: 'status = ?',
         whereArgs: <Object?>['open'],
       );
+
+      batch.delete('cash_movements', where: 'cash_session_id = ?', whereArgs: <Object?>[sessionId]);
+      batch.delete('sales', where: 'cash_session_id = ?', whereArgs: <Object?>[sessionId]);
+      batch.delete('service_records', where: 'cash_session_id = ?', whereArgs: <Object?>[sessionId]);
+      batch.delete('appointments', where: 'status IN (?, ?, ?)', whereArgs: <Object?>['pendiente', 'llego', 'en proceso']);
+      batch.delete('daily_closings', where: 'id = ? OR work_date = ?', whereArgs: <Object?>[closeId, workDate]);
 
       batch.insert(
         'cash_sessions',
@@ -81,10 +103,8 @@ class CloseReopenService {
           'opened_by': closeBatch['closed_by'] ?? 'mobile_user',
           'closing_notes': '',
         },
-          conflictAlgorithm: ConflictAlgorithm.replace,
+        conflictAlgorithm: ConflictAlgorithm.replace,
       );
-
-      batch.delete('daily_closings', where: 'id = ? OR work_date = ?', whereArgs: <Object?>['${closeBatch['close_batch_id'] ?? ''}', workDate]);
 
       for (final row in workers) {
         final data = row.cast<String, dynamic>();
@@ -234,7 +254,7 @@ class CloseReopenService {
       batch.insert(
         'daily_closings',
         <String, Object?>{
-          'id': '${closeBatch['close_batch_id'] ?? 'REOPEN-$sessionId'}',
+          'id': closeId,
           'work_date': workDate,
           'opened_at': closeBatch['opened_at'] ?? DateTime.now().toIso8601String(),
           'closed_at': closeBatch['closed_at'] ?? DateTime.now().toIso8601String(),
@@ -242,12 +262,47 @@ class CloseReopenService {
           'sales_total': (dailySummary['sales_total'] as num?)?.toDouble() ?? 0,
           'expenses_total': (dailySummary['expenses_total'] as num?)?.toDouble() ?? 0,
           'expected_cash_closing': (dailySummary['expected_cash_closing'] as num?)?.toDouble() ?? 0,
-          'export_file_name': (payload['export_meta'] as Map?)?['file_name'] ?? p.basename(path),
+          'export_file_name': fileName,
           'closed_by': closeBatch['closed_by'] ?? 'mobile_user',
-          'notes': 'Reabierto desde historial',
+          'notes': registerInHistory ? 'Importado desde backup JSON' : 'Reabierto desde historial',
         },
-          conflictAlgorithm: ConflictAlgorithm.replace,
+        conflictAlgorithm: ConflictAlgorithm.replace,
       );
+
+      if (registerInHistory) {
+        batch.insert(
+          'export_history',
+          <String, Object?>{
+            'id': const Uuid().v4(),
+            'created_at': DateTime.now().toIso8601String(),
+            'file_name': fileName,
+            'file_path': storedPath,
+            'share_channel': 'imported_backup',
+            'close_id': closeId,
+          },
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+      }
     });
+  }
+
+  Future<String> _copyIntoManagedExports(File source, Object? suggestedName) async {
+    final docs = await getApplicationDocumentsDirectory();
+    final exportsDir = Directory(p.join(docs.path, 'exports'));
+    if (!await exportsDir.exists()) {
+      await exportsDir.create(recursive: true);
+    }
+    final baseName = '${suggestedName ?? p.basename(source.path)}'.trim().isEmpty
+        ? 'imported_${DateTime.now().millisecondsSinceEpoch}.json'
+        : '${suggestedName ?? p.basename(source.path)}';
+    final target = File(p.join(exportsDir.path, baseName));
+    if (p.normalize(source.path) == p.normalize(target.path)) {
+      return source.path;
+    }
+    final uniqueTarget = target.existsSync()
+        ? File(p.join(exportsDir.path, '${p.basenameWithoutExtension(baseName)}_${DateTime.now().millisecondsSinceEpoch}${p.extension(baseName)}'))
+        : target;
+    await source.copy(uniqueTarget.path);
+    return uniqueTarget.path;
   }
 }

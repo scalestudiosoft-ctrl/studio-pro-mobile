@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../core/constants/app_constants.dart';
@@ -280,7 +281,19 @@ class _CashPageState extends State<CashPage> {
       'origin_type': originType,
     });
     if (_appointmentId != null) {
-      await db.delete('appointments', where: 'id = ?', whereArgs: <Object?>[_appointmentId]);
+      await db.update(
+        'appointments',
+        <String, Object?>{
+          'status': 'finalizado',
+          'worker_id': worker['id'],
+          'worker_name': worker['name'],
+          'service_code': service['code'],
+          'service_name': service['name'],
+          'notes': _saleNotesController.text.trim(),
+        },
+        where: 'id = ?',
+        whereArgs: <Object?>[_appointmentId],
+      );
     }
     _appointmentId = null;
     _selectedClientId = null;
@@ -293,6 +306,73 @@ class _CashPageState extends State<CashPage> {
     await _load();
     if (!mounted) return;
     _showMessage('Venta registrada y enviada al cierre como servicio real.');
+  }
+
+
+  Future<void> _deleteSale(Map<String, Object?> sale) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Eliminar factura'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            const Text('Se eliminará la venta y su impacto en caja.'),
+            const SizedBox(height: 12),
+            Text('Cliente: ${sale['client_name'] ?? '-'}'),
+            Text('Profesional: ${sale['worker_name'] ?? '-'}'),
+            Text('Servicio: ${sale['service_name'] ?? '-'}'),
+            Text('Valor: ${copCurrency.format((sale['net_total'] as num).toDouble())}'),
+            Text('Pago: ${_paymentLabel('${sale['payment_method']}')}'),
+          ],
+        ),
+        actions: <Widget>[
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Eliminar factura')),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+
+    final db = AppDatabase.instance;
+    final saleId = '${sale['id']}';
+    final serviceRecordId = '${sale['service_record_id'] ?? ''}';
+    final appointmentId = '${sale['source_appointment_id'] ?? ''}'.trim();
+    final saleAt = DateTime.tryParse('${sale['sale_at'] ?? ''}') ?? DateTime.now();
+
+    await db.executeBatch((batch) async {
+      batch.delete('cash_movements', where: 'sale_id = ?', whereArgs: <Object?>[saleId]);
+      batch.delete('sales', where: 'id = ?', whereArgs: <Object?>[saleId]);
+      if (serviceRecordId.isNotEmpty) {
+        batch.delete('service_records', where: 'id = ?', whereArgs: <Object?>[serviceRecordId]);
+      }
+      if (appointmentId.isNotEmpty) {
+        batch.insert(
+          'appointments',
+          <String, Object?>{
+            'id': appointmentId,
+            'client_id': sale['client_id'] ?? '',
+            'client_name': sale['client_name'] ?? '',
+            'worker_id': sale['worker_id'],
+            'worker_name': sale['worker_name'],
+            'service_code': sale['service_code'],
+            'service_name': sale['service_name'],
+            'scheduled_at': saleAt.toIso8601String(),
+            'status': 'pendiente',
+            'notes': 'Restaurada desde factura eliminada',
+          },
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+      }
+    });
+
+    AppSyncBus.bump();
+    await _load();
+    if (!mounted) return;
+    _showMessage(appointmentId.isNotEmpty
+        ? 'Factura eliminada. La cita volvió a Agenda como pendiente.'
+        : 'Factura eliminada correctamente.');
   }
 
   Future<void> _saveMovement() async {
@@ -579,6 +659,15 @@ class _CashPageState extends State<CashPage> {
                       const SizedBox(height: 10),
                       Text('Hora: ${saleAt == null ? '-' : formatShortDateTime(saleAt)}'),
                       Text('Valor: ${copCurrency.format(amount)}'),
+                      const SizedBox(height: 12),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: OutlinedButton.icon(
+                          onPressed: () => _deleteSale(sale),
+                          icon: const Icon(Icons.delete_outline),
+                          label: const Text('Eliminar factura'),
+                        ),
+                      ),
                     ],
                   ),
                 ),
